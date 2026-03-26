@@ -1,5 +1,4 @@
 version: "3.9"
-
 services:
   api:
     build: .
@@ -8,30 +7,14 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:////app/analytics.db
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 5s
-      start_period: 10s
-      retries: 3
     restart: unless-stopped
-
-  seeder:
-    build: .
-    container_name: feature-analytics-seeder
-    profiles:
-      - seed
-    depends_on:
-      api:
-        condition: service_healthy
-    command: python scripts/seed.py --count 500
-    environment:
-      - DATABASE_URL=sqlite:////app/analytics.db
 ```
 
-Commit message: `fix yaml formatting`
+That's it. Super simple. No healthcheck, no seeder for now.
 
-Then in PowerShell:
+Commit message: `simplify docker compose`
+
+Then:
 ```
 git pull
 docker-compose down
