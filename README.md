@@ -1,122 +1,109 @@
 # Feature Usage Analytics API
 
-A REST API for ingesting and querying feature usage telemetry built for T-Mobile's take-home assignment.
+Built for T-Mobile's take-home assignment. This service tracks feature usage events across T-Mobile's product lineup and lets analysts answer questions like "what features did our subscribers use most between 9am and 10am?"
 
 ## How to Run
-
-### With Docker (recommended)
 ```bash
 docker-compose up --build
 ```
 
-### Without Docker
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-Visit http://localhost:8000/docs for interactive API docs.
+Then open http://localhost:8000 for the dashboard or http://localhost:8000/docs for the API.
 
 ## How to Seed Data
 ```bash
-# default 500 events
-python scripts/seed.py
+# from inside the container
+docker exec feature-analytics-api python scripts/seed.py --count 500
 
-# custom count
-python scripts/seed.py --count 2000
-
-# wipe and reseed
-python scripts/seed.py --reset
+# or wipe and reseed
+docker exec feature-analytics-api python scripts/seed.py --reset --count 500
 ```
 
 ## How to Run Tests
 ```bash
-pytest tests/ -v
+docker exec feature-analytics-api python -m pytest tests/ -v
 ```
 
-## API Usage
+All 20 tests should pass.
 
-### Ingest Single Event
-```bash
-curl -X POST http://localhost:8000/events \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "user-123",
-    "feature": "netflix_on_us",
-    "metadata": {"plan": "magenta_max", "device": "mobile"}
-  }'
+## API Endpoints
+
+### Ingest a single event
+```
+POST /events
+```
+```json
+{
+  "user_id": "user-123",
+  "feature": "netflix_on_us",
+  "metadata": {"plan": "magenta_max", "device": "mobile"}
+}
 ```
 
-### Ingest Batch
-```bash
-curl -X POST http://localhost:8000/events/batch \
-  -H "Content-Type: application/json" \
-  -d '{
-    "events": [
-      {"user_id": "user-001", "feature": "voice_call"},
-      {"user_id": "user-002", "feature": "netflix_on_us"}
-    ]
-  }'
+### Ingest a batch (up to 1000 events)
+```
+POST /events/batch
 ```
 
-### Top Features
-```bash
-curl "http://localhost:8000/analytics/top-features?start=2025-01-01T09:00:00Z&end=2025-01-01T10:00:00Z&limit=5"
+### Top features in a time window
+```
+GET /analytics/top-features?start=2025-01-01T09:00:00Z&end=2025-01-01T10:00:00Z&limit=5
 ```
 
-### Unique Users
-```bash
-curl "http://localhost:8000/analytics/unique-users?feature=netflix_on_us"
+### Unique users for a feature
+```
+GET /analytics/unique-users?feature=netflix_on_us
 ```
 
-### Metadata Breakdown
-```bash
-curl "http://localhost:8000/analytics/metadata-breakdown?feature=netflix_on_us&dimension=device"
+### Metadata breakdown
+```
+GET /analytics/metadata-breakdown?feature=netflix_on_us&dimension=device
 ```
 
-### Health Check
-```bash
-curl http://localhost:8000/health
+### Health check
+```
+GET /health
 ```
 
-## Production Readiness Notes
+## What I Built
 
-### What is implemented
-- Input validation with Pydantic v2
-- Batch ingestion in single atomic transaction
-- UTC timestamp normalisation
-- Database indexes for fast queries
-- Repository pattern for database swappability
-- Request logging middleware
-- Health check endpoint
+- FastAPI REST API with event ingestion and analytics endpoints
+- SQLite database with proper indexes on feature, user_id, and timestamp
+- Repository pattern so swapping to Postgres is just a config change
+- Batch ingestion in a single atomic transaction
+- Input validation with Pydantic — bad data gets rejected before hitting the DB
+- T-Mobile branded analytics dashboard at localhost:8000
+- 20 pytest tests covering all endpoints and edge cases
+- Docker + docker-compose setup
+
+## Production Readiness
+
+### What's implemented
+- Input validation and error handling
+- Request logging with timing
+- Composite database indexes for fast time-range queries
+- Health check endpoint for load balancers
+- Atomic batch writes
 - Non-root Docker user
 - 20 automated tests
 
-### What is missing for true production
-- Kafka/Kinesis for high throughput ingestion (120M subscribers)
-- Postgres with JSONB indexes instead of SQLite
-- Redis caching for analytics queries
-- Pre-aggregated hourly summary tables
-- Authentication and rate limiting
-- OpenTelemetry distributed tracing
-- Horizontal scaling with Kubernetes
+### What I'd add with more time
+- Kafka or Kinesis in front of the ingestion endpoint — at 120M subscribers you can't write directly to SQLite or even Postgres without buffering
+- Postgres with JSONB indexes instead of SQLite — json_extract() on TEXT doesn't scale
+- Pre-aggregated hourly summary tables — COUNT queries over billions of rows need materialized views
+- Auth — right now the API is wide open
+- Rate limiting
+- OpenTelemetry tracing
 
-## Design Decisions and Trade-offs
+## Design Decisions
 
-### Repository Pattern
-All database queries live in `event_repository.py`. Swapping SQLite to Postgres only requires changing the `DATABASE_URL` environment variable.
+**Repository pattern** — all database queries live in event_repository.py. The routers never touch SQLAlchemy directly. If T-Mobile wants to move to CosmosDB or Postgres, only that one file changes.
 
-### SQLite over Postgres
-Chose SQLite for simplicity and zero external dependencies. For production at T-Mobile scale (120M subscribers) Postgres with connection pooling is the right choice.
+**SQLite for this assignment** — zero external dependencies, works identically in Docker and in the test suite (in-memory). The DATABASE_URL env var makes swapping to Postgres a one-line change.
 
-### On-demand analytics over pre-aggregation
-Flexible for arbitrary time windows. At T-Mobile scale, hourly pre-aggregated summary tables would be needed for fast dashboard queries.
+**On-demand analytics over pre-aggregation** — flexible for any time window. Works fine at this scale. At T-Mobile scale with billions of rows, I'd add an hourly rollup job.
 
-### Synchronous over async
-Simpler code and easier to test. At scale, multiple uvicorn workers handle concurrency.
+**Synchronous FastAPI** — simpler code, easier to reason about. At scale, run multiple uvicorn workers instead of going async.
 
-## Potential v2 Expansions
-- Real-time streaming with Kafka
-- Pre-aggregated hourly stats table
-- Postgres JSONB with GIN indexes for metadata queries
-- Multi-tenancy support
+## Scale Assumptions
+
+T-Mobile has ~120M active subscribers with ~1.2 devices each = ~144M devices. If each device emits one event every 5 minutes that's roughly 480K events per minute. The current SQLite setup handles development and demos fine. Production would need Kafka for ingestion buffering and Postgres with partitioned tables for storage.

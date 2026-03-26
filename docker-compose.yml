@@ -5,17 +5,4 @@ services:
     container_name: feature-analytics-api
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=sqlite:////app/analytics.db
     restart: unless-stopped
-```
-
-That's it. Super simple. No healthcheck, no seeder for now.
-
-Commit message: `simplify docker compose`
-
-Then:
-```
-git pull
-docker-compose down
-docker-compose up --build

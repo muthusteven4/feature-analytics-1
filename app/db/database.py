@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 # default to SQLite locally, override with DATABASE_URL for postgres
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./analytics.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/analytics.db")
 
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):

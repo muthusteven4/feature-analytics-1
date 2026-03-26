@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T-Mobile Feature Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #f0f0f0; font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .header { background: #E20074; padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-family: 'Rajdhani', sans-serif; font-size: 1.6rem; font-weight: 700; color: white; letter-spacing: 1px; }
+  .logo span { color: #ffcce8; font-size: 0.9rem; font-weight: 500; margin-left: 12px; }
+  .live-badge { background: rgba(255,255,255,0.2); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .live-dot { width: 8px; height: 8px; background: #7fff7f; border-radius: 50%; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  .section-title { font-family: 'Rajdhani', sans-serif; font-size: 0.75rem; font-weight: 600; color: #E20074; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1rem; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 1.25rem; position: relative; overflow: hidden; }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #E20074; }
+  .stat-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-value { font-family: 'Rajdhani', sans-serif; font-size: 2rem; font-weight: 700; color: white; line-height: 1; }
+  .stat-sub { font-size: 11px; color: #666; margin-top: 4px; }
+  .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+  .chart-card { background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 1.5rem; }
+  .chart-title { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600; color: #f0f0f0; margin-bottom: 1.25rem; }
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .feature-list { list-style: none; }
+  .feature-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1f1f1f; }
+  .feature-item:last-child { border-bottom: none; }
+  .feature-name { font-size: 13px; color: #ccc; display: flex; align-items: center; gap: 8px; }
+  .rank { font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700; color: #E20074; width: 20px; }
+  .feature-bar-wrap { flex: 1; margin: 0 12px; }
+  .feature-bar { height: 4px; background: #2a2a2a; border-radius: 2px; overflow: hidden; }
+  .feature-bar-fill { height: 100%; background: #E20074; border-radius: 2px; transition: width 1s ease; }
+  .feature-count { font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600; color: white; min-width: 30px; text-align: right; }
+  .refresh-btn { background: transparent; border: 1px solid #E20074; color: #E20074; padding: 6px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+  .refresh-btn:hover { background: #E20074; color: white; }
+  .loading { color: #555; font-size: 13px; text-align: center; padding: 2rem; }
+  .error-msg { color: #ff6b6b; font-size: 12px; text-align: center; padding: 1rem; }
+  canvas { max-height: 220px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">T-MOBILE <span>Feature Analytics</span></div>
+  <div class="live-badge"><div class="live-dot"></div> Live</div>
+</div>
+<div class="container">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+    <p class="section-title">Overview</p>
+    <button class="refresh-btn" onclick="loadAll()">Refresh Data</button>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Events</div>
+      <div class="stat-value" id="total-events">—</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Top Feature</div>
+      <div class="stat-value" id="top-feature" style="font-size:1.1rem; margin-top:4px;">—</div>
+      <div class="stat-sub">most used</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unique Users</div>
+      <div class="stat-value" id="unique-users">—</div>
+      <div class="stat-sub">netflix on us</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Features Tracked</div>
+      <div class="stat-value" id="features-count">—</div>
+      <div class="stat-sub">active features</div>
+    </div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Feature Usage — Top 10</div>
+      <canvas id="barChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Device Breakdown</div>
+      <canvas id="doughnutChart"></canvas>
+    </div>
+  </div>
+  <div class="bottom-grid">
+    <div class="chart-card">
+      <div class="chart-title">Feature Ranking</div>
+      <ul class="feature-list" id="feature-list">
+        <li class="loading">Loading...</li>
+      </ul>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Plan Breakdown — Netflix on Us</div>
+      <canvas id="planChart"></canvas>
+    </div>
+  </div>
+</div>
+<script>
+const API = 'http://localhost:8000';
+let barChartInst, doughnutInst, planChartInst;
+
+async function fetchTopFeatures() {
+  const r = await fetch(`${API}/analytics/top-features?limit=10`);
+  return r.json();
+}
+async function fetchUniqueUsers(feature) {
+  const r = await fetch(`${API}/analytics/unique-users?feature=${feature}`);
+  return r.json();
+}
+async function fetchBreakdown(feature, dim) {
+  const r = await fetch(`${API}/analytics/metadata-breakdown?feature=${feature}&dimension=${dim}`);
+  return r.json();
+}
+function renderBar(labels, data) {
+  if (barChartInst) barChartInst.destroy();
+  const ctx = document.getElementById('barChart').getContext('2d');
+  barChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: labels.map((_, i) => i === 0 ? '#E20074' : '#3a3a3a'), borderRadius: 4 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#888', font: { size: 11 } }, grid: { color: '#1f1f1f' } }, y: { ticks: { color: '#888', font: { size: 11 } }, grid: { color: '#1f1f1f' } } } }
+  });
+}
+function renderDoughnut(labels, data) {
+  if (doughnutInst) doughnutInst.destroy();
+  const ctx = document.getElementById('doughnutChart').getContext('2d');
+  doughnutInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: ['#E20074','#ff4da6','#ff99cc','#ffcce8','#cc0060'], borderWidth: 0 }] },
+    options: { plugins: { legend: { position: 'bottom', labels: { color: '#888', font: { size: 11 }, padding: 12 } } }, cutout: '65%' }
+  });
+}
+function renderPlan(labels, data) {
+  if (planChartInst) planChartInst.destroy();
+  const ctx = document.getElementById('planChart').getContext('2d');
+  planChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: '#E20074', borderRadius: 4 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#888', font: { size: 11 } }, grid: { color: '#1f1f1f' } }, y: { ticks: { color: '#888', font: { size: 11 } }, grid: { display: false } } } }
+  });
+}
+function renderList(features) {
+  const max = features[0]?.event_count || 1;
+  document.getElementById('feature-list').innerHTML = features.map((f, i) => `
+    <li class="feature-item">
+      <span class="rank">${i + 1}</span>
+      <span class="feature-name">${f.feature.replace(/_/g, ' ')}</span>
+      <div class="feature-bar-wrap"><div class="feature-bar"><div class="feature-bar-fill" style="width:${Math.round((f.event_count/max)*100)}%"></div></div></div>
+      <span class="feature-count">${f.event_count}</span>
+    </li>`).join('');
+}
+async function loadAll() {
+  try {
+    const top = await fetchTopFeatures();
+    const features = top.top_features || [];
+    document.getElementById('total-events').textContent = features.reduce((s, f) => s + f.event_count, 0).toLocaleString();
+    document.getElementById('top-feature').textContent = features[0]?.feature.replace(/_/g, ' ') || '—';
+    document.getElementById('features-count').textContent = features.length;
+    renderBar(features.map(f => f.feature.replace(/_/g, ' ')), features.map(f => f.event_count));
+    renderList(features);
+    const users = await fetchUniqueUsers('netflix_on_us');
+    document.getElementById('unique-users').textContent = (users.unique_users || 0).toLocaleString();
+    const device = await fetchBreakdown('netflix_on_us', 'device');
+    if (device.breakdown?.length) renderDoughnut(device.breakdown.map(d => d.dimension_value), device.breakdown.map(d => d.event_count));
+    const plan = await fetchBreakdown('netflix_on_us', 'plan');
+    if (plan.breakdown?.length) renderPlan(plan.breakdown.map(d => d.dimension_value), plan.breakdown.map(d => d.event_count));
+  } catch(e) {
+    document.getElementById('feature-list').innerHTML = '<li class="error-msg">Could not connect to API.</li>';
+  }
+}
+loadAll();
+</script>
+</body>
+</html>

@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.db.database import init_db
 from app.routers import events, analytics, health
@@ -68,3 +69,11 @@ async def generic_error_handler(request: Request, exc: Exception):
 app.include_router(health.router, tags=["Health"])
 app.include_router(events.router, prefix="/events", tags=["Events"])
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+
+
+@app.get("/")
+def dashboard():
+    return FileResponse("static/index.html")
+
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
