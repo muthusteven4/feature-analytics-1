@@ -79,10 +79,15 @@ def unique_users(
 def metadata_breakdown(
     feature: str = Query(...),
     dimension: str = Query(...),
+    start: Optional[str] = Query(None),
+    end: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
+    start_dt = _parse_dt(start, "start")
+    end_dt = _parse_dt(end, "end")
+
     repo = EventRepository(db)
-    rows = repo.metadata_breakdown(feature=feature, dimension_key=dimension)
+    rows = repo.metadata_breakdown(feature=feature, dimension_key=dimension, start=start_dt, end=end_dt)
 
     return MetadataBreakdownResponse(
         feature=feature,

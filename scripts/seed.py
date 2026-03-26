@@ -36,7 +36,7 @@ def make_events(count):
     now = datetime.now(timezone.utc)
     events = []
     for _ in range(count):
-        ts = now - timedelta(days=random.uniform(0, 7))
+        ts = now - timedelta(days=random.randint(0, 1825))
         feature = random.choices(FEATURES, weights=FEATURE_WEIGHTS, k=1)[0]
         user_id = f"user-{random.randint(1, 500):04d}"
         meta = {

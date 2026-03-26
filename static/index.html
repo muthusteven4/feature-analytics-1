@@ -38,9 +38,23 @@
   .feature-count { font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600; color: white; min-width: 30px; text-align: right; }
   .refresh-btn { background: transparent; border: 1px solid #E20074; color: #E20074; padding: 6px 16px; border-radius: 4px; font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
   .refresh-btn:hover { background: #E20074; color: white; }
+  .apply-btn { background: #E20074; border: 1px solid #E20074; color: white; padding: 6px 20px; border-radius: 4px; font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; font-weight: 600; }
+  .apply-btn:hover { background: #c4005f; }
   .loading { color: #555; font-size: 13px; text-align: center; padding: 2rem; }
   .error-msg { color: #ff6b6b; font-size: 12px; text-align: center; padding: 1rem; }
   canvas { max-height: 220px; }
+ 
+  /* Date Filter Bar */
+  .filter-bar { background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 8px; }
+  .filter-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .filter-input { background: #0a0a0a; border: 1px solid #3a3a3a; color: #f0f0f0; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; }
+  .filter-input:focus { outline: none; border-color: #E20074; }
+  .filter-divider { color: #444; font-size: 11px; }
+  .active-range { font-size: 11px; color: #E20074; margin-left: auto; font-style: italic; }
+  .preset-btns { display: flex; gap: 6px; }
+  .preset-btn { background: #0a0a0a; border: 1px solid #3a3a3a; color: #888; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+  .preset-btn:hover, .preset-btn.active { border-color: #E20074; color: #E20074; }
 </style>
 </head>
 <body>
@@ -49,15 +63,40 @@
   <div class="live-badge"><div class="live-dot"></div> Live</div>
 </div>
 <div class="container">
+ 
+  <!-- Top bar -->
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
     <p class="section-title">Overview</p>
     <button class="refresh-btn" onclick="loadAll()">Refresh Data</button>
   </div>
+ 
+  <!-- Date Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">From</span>
+      <input type="date" id="start-date" class="filter-input" value="2020-01-01">
+    </div>
+    <span class="filter-divider">→</span>
+    <div class="filter-group">
+      <span class="filter-label">To</span>
+      <input type="date" id="end-date" class="filter-input" value="2026-03-26">
+    </div>
+    <button class="apply-btn" onclick="loadAll()">Apply Filter</button>
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="setPreset('today')">Today</button>
+      <button class="preset-btn" onclick="setPreset('7d')">7 Days</button>
+      <button class="preset-btn" onclick="setPreset('30d')">30 Days</button>
+      <button class="preset-btn" onclick="setPreset('all')">All Time</button>
+    </div>
+    <span class="active-range" id="active-range"></span>
+  </div>
+ 
+  <!-- Stats -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-label">Total Events</div>
       <div class="stat-value" id="total-events">—</div>
-      <div class="stat-sub">all time</div>
+      <div class="stat-sub" id="range-label">all time</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Top Feature</div>
@@ -75,6 +114,8 @@
       <div class="stat-sub">active features</div>
     </div>
   </div>
+ 
+  <!-- Charts -->
   <div class="charts-grid">
     <div class="chart-card">
       <div class="chart-title">Feature Usage — Top 10</div>
@@ -98,22 +139,60 @@
     </div>
   </div>
 </div>
+ 
 <script>
 const API = 'http://localhost:8000';
 let barChartInst, doughnutInst, planChartInst;
-
+ 
+function getDateRange() {
+  const start = document.getElementById('start-date').value;
+  const end = document.getElementById('end-date').value;
+  return {
+    start: `${start}T00:00:00Z`,
+    end: `${end}T23:59:59Z`
+  };
+}
+ 
+function setPreset(preset) {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+ 
+  if (preset === 'today') {
+    document.getElementById('start-date').value = today;
+    document.getElementById('end-date').value = today;
+  } else if (preset === '7d') {
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    document.getElementById('start-date').value = d.toISOString().split('T')[0];
+    document.getElementById('end-date').value = today;
+  } else if (preset === '30d') {
+    const d = new Date(); d.setDate(d.getDate() - 30);
+    document.getElementById('start-date').value = d.toISOString().split('T')[0];
+    document.getElementById('end-date').value = today;
+  } else if (preset === 'all') {
+    document.getElementById('start-date').value = '2020-01-01';
+    document.getElementById('end-date').value = '2026-03-26';
+  }
+  loadAll();
+}
+ 
 async function fetchTopFeatures() {
-  const r = await fetch(`${API}/analytics/top-features?limit=10`);
+  const { start, end } = getDateRange();
+  const r = await fetch(`${API}/analytics/top-features?limit=10&start=${start}&end=${end}`);
   return r.json();
 }
 async function fetchUniqueUsers(feature) {
-  const r = await fetch(`${API}/analytics/unique-users?feature=${feature}`);
+  const { start, end } = getDateRange();
+  const r = await fetch(`${API}/analytics/unique-users?feature=${feature}&start=${start}&end=${end}`);
   return r.json();
 }
 async function fetchBreakdown(feature, dim) {
-  const r = await fetch(`${API}/analytics/metadata-breakdown?feature=${feature}&dimension=${dim}`);
+  const { start, end } = getDateRange();
+  const r = await fetch(`${API}/analytics/metadata-breakdown?feature=${feature}&dimension=${dim}&start=${start}&end=${end}`);
   return r.json();
 }
+ 
 function renderBar(labels, data) {
   if (barChartInst) barChartInst.destroy();
   const ctx = document.getElementById('barChart').getContext('2d');
@@ -151,7 +230,14 @@ function renderList(features) {
       <span class="feature-count">${f.event_count}</span>
     </li>`).join('');
 }
+ 
 async function loadAll() {
+  const { start, end } = getDateRange();
+  const startLabel = document.getElementById('start-date').value;
+  const endLabel = document.getElementById('end-date').value;
+  document.getElementById('active-range').textContent = `Showing: ${startLabel} → ${endLabel}`;
+  document.getElementById('range-label').textContent = `${startLabel} to ${endLabel}`;
+ 
   try {
     const top = await fetchTopFeatures();
     const features = top.top_features || [];
@@ -160,10 +246,13 @@ async function loadAll() {
     document.getElementById('features-count').textContent = features.length;
     renderBar(features.map(f => f.feature.replace(/_/g, ' ')), features.map(f => f.event_count));
     renderList(features);
+ 
     const users = await fetchUniqueUsers('netflix_on_us');
     document.getElementById('unique-users').textContent = (users.unique_users || 0).toLocaleString();
+ 
     const device = await fetchBreakdown('netflix_on_us', 'device');
     if (device.breakdown?.length) renderDoughnut(device.breakdown.map(d => d.dimension_value), device.breakdown.map(d => d.event_count));
+ 
     const plan = await fetchBreakdown('netflix_on_us', 'plan');
     if (plan.breakdown?.length) renderPlan(plan.breakdown.map(d => d.dimension_value), plan.breakdown.map(d => d.event_count));
   } catch(e) {
