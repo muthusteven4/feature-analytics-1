@@ -13,6 +13,7 @@
 - [Seed the Database](#-seed-the-database)
 - [Run the Tests](#-run-the-tests)
 - [API Reference](#-api-reference)
+- [Live Dashboard](#-live-dashboard)
 - [Project Structure](#-project-structure)
 - [Architecture & Design](#-architecture--design)
 - [Production Readiness Notes](#-production-readiness-notes)
@@ -62,23 +63,6 @@ This service does two things:
   "metadata": { "plan": "magenta_max", "device": "mobile" }
 }
 ```
-
----
-
-## 📊 Live Dashboard
-
-Visit [http://localhost:8000](http://localhost:8000) after seeding to see the live analytics dashboard.
-
-**Features:**
-- Date range filter with From/To date pickers
-- Preset buttons — Today, 7 Days, 30 Days, All Time
-- Feature Usage bar chart (Top 10)
-- Device Breakdown donut chart
-- Plan Breakdown horizontal bar chart
-- Feature Ranking list with progress bars
-- Live dot indicator + Refresh Data button
-
-All charts update instantly when you change the date range — powered by the same API endpoints.
 
 ---
 
@@ -324,6 +308,23 @@ curl "http://localhost:8000/analytics/metadata-breakdown?feature=netflix_on_us&d
 curl http://localhost:8000/health
 # → {"status":"ok","timestamp":"2026-03-26T12:00:00Z","version":"1.0.0"}
 ```
+
+---
+
+## 📊 Live Dashboard
+
+Visit [http://localhost:8000](http://localhost:8000) after seeding to see the live analytics dashboard.
+
+**Features:**
+- Date range filter with From/To date pickers
+- Preset buttons — Today, 7 Days, 30 Days, All Time
+- Feature Usage bar chart (Top 10)
+- Device Breakdown donut chart
+- Plan Breakdown horizontal bar chart
+- Feature Ranking list with progress bars
+- Live dot indicator + Refresh Data button
+
+All charts update instantly when you change the date range — powered by the same API endpoints above.
 
 ---
 
