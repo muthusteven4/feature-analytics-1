@@ -1,7 +1,7 @@
 # LLM Interactions Log
 
 ## Tool Used
-Claude (claude-sonnet-4-6) via claude.ai
+Claude (claude-sonnet-4.6) via claude.ai
 
 ## Overview
 This document logs the actual prompts I used and what got built at each step.
