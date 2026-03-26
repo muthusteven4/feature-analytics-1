@@ -9,13 +9,7 @@ services:
     environment:
       - DATABASE_URL=sqlite:////app/analytics.db
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
-        ]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 5s
       start_period: 10s
@@ -25,7 +19,8 @@ services:
   seeder:
     build: .
     container_name: feature-analytics-seeder
-    profiles: ["seed"]
+    profiles:
+      - seed
     depends_on:
       api:
         condition: service_healthy
@@ -34,9 +29,7 @@ services:
       - DATABASE_URL=sqlite:////app/analytics.db
 ```
 
-Commit message: `fix sqlite database path`
-
----
+Commit message: `fix yaml formatting`
 
 Then in PowerShell:
 ```
