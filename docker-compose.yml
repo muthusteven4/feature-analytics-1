@@ -7,9 +7,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./analytics.db
-    volumes:
-      - ./analytics.db:/app/analytics.db
+      - DATABASE_URL=sqlite:////app/analytics.db
     healthcheck:
       test:
         [
@@ -31,8 +29,17 @@ services:
     depends_on:
       api:
         condition: service_healthy
-    volumes:
-      - ./analytics.db:/app/analytics.db
     command: python scripts/seed.py --count 500
     environment:
-      - DATABASE_URL=sqlite:///./analytics.db
+      - DATABASE_URL=sqlite:////app/analytics.db
+```
+
+Commit message: `fix sqlite database path`
+
+---
+
+Then in PowerShell:
+```
+git pull
+docker-compose down
+docker-compose up --build
