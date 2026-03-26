@@ -6,8 +6,8 @@ Claude (claude-sonnet-4.6) via claude.ai
 ## Overview
 This document logs the actual prompts I used and what got built at each step.
 I used Claude as a coding collaborator — I drove the requirements and decisions,
-Claude handled the boilerplate and implementation. Rough split: ~70% Claude generated,
-~30% me directed, changed, or fixed based on testing.
+Claude handled the boilerplate and implementation. Rough split: ~65% Claude generated,
+~35% me directed, changed, or fixed based on testing.
 
 ---
 
